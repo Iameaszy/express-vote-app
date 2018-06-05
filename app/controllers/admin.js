@@ -1,18 +1,71 @@
 const express = require('express');
-const router = express.Router();
+const passport = require('passport');
 const mongoose = require('mongoose');
-const Article = mongoose.model('Admin');
+
+const AdminModel = mongoose.model('Admin');
+const router = express.Router();
 
 module.exports = (app) => {
-  app.use('/', router);
+  app.use('/admin', router);
 };
 
-router.get('/admin-login', (req, res, next) => {
-  Article.find((err, articles) => {
-    if (err) return next(err);
-    res.render('index', {
-      title: 'Generator-Express MVC',
-      articles: articles
-    });
+router.post('/login', (req, res, next) => {
+  passport.authenticate(
+    'admin',
+    {
+      session: false,
+    },
+    (err, user, info) => {
+      if (err) {
+        next(err);
+      }
+
+      if (!user) {
+        res.json(info);
+        return console.log(info);
+      }
+
+      if (user) {
+        req.logIn(
+          user,
+          {
+            session: false,
+          },
+          (error) => {
+            if (error) {
+              return console.log(error);
+            }
+
+            const token = user.generateJwt();
+            const data = {
+              token,
+              payload: {
+                email: user.email,
+                name: user.fullname,
+              },
+              message: info,
+            };
+            if (req.body && req.body.remember) {
+              res.cookie('pollway', data);
+              res.json(data);
+            } else {
+              res.status(200).send([{ user: data.payload }]);
+            }
+          },
+        );
+      }
+    },
+  )(req, res, next);
+});
+
+router.get('/profile/:id', (req, res) => {
+  const { id } = req.params;
+
+  AdminModel.findOne({ email: id }, (err, admin) => {
+    if (err) {
+      return console.log(err);
+    }
+
+    res.status(200).send(admin);
   });
 });

@@ -5,22 +5,29 @@ const mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
 mongoose.connect(config.db, {
-  useMongoClient: true
+  useMongoClient: true,
 });
 const db = mongoose.connection;
 db.on('error', () => {
-  throw new Error('unable to connect to database at ' + config.db);
+  throw new Error(`unable to connect to database at ${config.db}`);
 });
 
-const models = glob.sync(config.root + '/app/models/*.js');
-models.forEach(function (model) {
-  require(model);
-});
+new Promise((resolve) => {
+  const models = glob.sync(`${config.root}/app/models/*.js`);
+  models.forEach((model) => {
+    require(model);
+  });
+  resolve();
+}).then(() => {
+  require('./setup');
+})
+  .catch(err => console.log(err));
 
-//require('./setup')();
+
 const app = express();
+
 module.exports = require('./config/express')(app, config);
 
 app.listen(config.port, () => {
-  console.log('Express server listening on port ' + config.port);
+  console.log(`Express server listening on port ${config.port}`);
 });

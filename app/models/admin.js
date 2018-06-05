@@ -1,62 +1,99 @@
 // Example model
 
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+const jwt = require('jsonwebtoken');
+
+const {
+  Schema,
+} = mongoose;
 const bcrypt = require('bcrypt');
 
 const AdminSchema = new Schema({
-  fname: {
-    type: String,
-    alias: 'firstname'
-  },
-  lname: {
-    type: String,
-    alias: 'lastname'
+  name: {
+    first: {
+      type: String,
+      trim: true,
+      required: true,
+    },
+    last: {
+      type: String,
+      trim: true,
+      required: true,
+    },
+    others: {
+      type: String,
+      trim: true,
+    },
   },
   age: Number,
   email: {
     type: String,
-    unique: Boolean,
+    unique: true,
     lowercase: true,
-    required: true
+    required: true,
   },
   password: {
     type: String,
-    required: true
+    required: true,
   },
   security: {
-    type: String
+    type: String,
   },
-  isAdmin: Boolean
+  isAdmin: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   strictQuery: true,
-  timestamps: true
-})
+  timestamps: true,
+});
 
-AdminSchema.pre('save', function (next) {
+AdminSchema.set('toObject', {
+  virtuals: true,
+});
+AdminSchema.set('toJSON', {
+  virtuals: true,
+});
+
+function comparePassword(password) {
+  return new Promise((resolve, reject) => {
+    bcrypt.compare(password, this.password, (err, stat) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(stat);
+    });
+  });
+}
+
+function save(next) {
   const user = this;
-  bcrypt.hash(user.password, 15, function (err, hash) {
+  bcrypt.hash(user.password, 15, (err, hash) => {
     if (err) {
       return next(err);
     }
-    this.password = hash;
+    user.password = hash;
     next();
   });
-});
-AdminSchema.virtual('fullname').get(function () {
-  return `${this.firstname} ${this.lastname}`
-});
-
-AdminSchema.methods.comparePassword = function (password) {
-  let stat = false;
-  bcrypt.compare(password, this.password, function (err, stat) {
-    if (err) {
-      throw err;
-    }
-
-    stat = true;
-  });
-
-  return stat;
 }
+
+
+function generateJwt() {
+  const user = this;
+
+  return jwt.sign({
+    email: user.email,
+    name: user.fullname,
+    hash: user.password,
+  }, process.env.secret);
+}
+
+AdminSchema.virtual('fullname').get(function () {
+  return `${this.name.last} ${this.name.first}`;
+});
+
+AdminSchema.pre('save', save);
+AdminSchema.methods.comparePassword = comparePassword;
+AdminSchema.methods.generateJwt = generateJwt;
+
 mongoose.model('Admin', AdminSchema);

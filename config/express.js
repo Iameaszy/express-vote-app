@@ -11,41 +11,50 @@ const exphbs = require('express-handlebars');
 const cors = require('cors');
 const passport = require('passport');
 const flash = require('express-flash');
+const dotenv = require('dotenv');
+const session = require('express-session');
 
 module.exports = (app, config) => {
+  dotenv.config();
   const env = process.env.NODE_ENV || 'development';
   app.locals.ENV = env;
-  app.locals.ENV_DEVELOPMENT = env == 'development';
+  app.locals.ENV_DEVELOPMENT = env === 'development';
 
   app.engine('handlebars', exphbs({
-    layoutsDir: config.root + '/app/views/layouts/',
+    layoutsDir: `${config.root}/app/views/layouts/`,
     defaultLayout: 'main',
-    partialsDir: [config.root + '/app/views/partials/']
+    partialsDir: [`${config.root}/app/views/partials/`],
   }));
-  app.set('views', config.root + '/app/views');
+  app.set('views', `${config.root}/app/views`);
   app.set('view engine', 'handlebars');
 
   // app.use(favicon(config.root + '/public/img/favicon.ico'));
   app.use(logger('dev'));
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({
-    extended: true
+    extended: true,
   }));
   app.use(cookieParser());
   app.use(compress());
-  app.use(express.static(config.root + '/public'));
+  app.use(express.static(`${config.root}/public`));
   app.use(methodOverride());
   app.use(cors({
-    origin: 'http://localhost:3000'
+    origin: 'http://localhost:4200',
+    credentials: true,
+  }));
+  app.use(session({
+    secret: process.env.secret,
+    saveUninitialized: false,
+    resave: true,
   }));
   app.use(flash());
   app.use(passport.initialize());
-  const passports = glob.sync(__dirname + '/passport/*.js');
-  passports.forEach(passport => {
+  app.use(passport.session());
+  const passports = glob.sync(`${__dirname}/passport/*.js`);
+  passports.forEach((passport) => {
     require(passport);
   });
-
-  const controllers = glob.sync(config.root + '/app/controllers/*.js');
+  const controllers = glob.sync(`${config.root}/app/controllers/*.js`);
   controllers.forEach((controller) => {
     require(controller)(app);
   });
@@ -62,7 +71,7 @@ module.exports = (app, config) => {
       res.render('error', {
         message: err.message,
         error: err,
-        title: 'error'
+        title: 'error',
       });
     });
   }
@@ -72,7 +81,7 @@ module.exports = (app, config) => {
     res.render('error', {
       message: err.message,
       error: {},
-      title: 'error'
+      title: 'error',
     });
   });
 
