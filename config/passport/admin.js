@@ -8,11 +8,11 @@ const AdminModel = mongoose.model('Admin');
 passport.use(
   'admin',
   new LocalStrategy(
-{
-    usernameField: 'email',
-    passwordField: 'passwd',
-  },
-    ((email, password, done) => {
+    {
+      usernameField: 'email',
+      passwordField: 'passwd',
+    },
+    (email, password, done) => {
       AdminModel.findOne({
         email,
       })
@@ -22,7 +22,8 @@ passport.use(
               message: 'Incorrect email/password',
             });
           }
-          user.comparePassword(password)
+          user
+            .comparePassword(password)
             .then((stat) => {
               if (stat) {
                 done(null, user, {
@@ -34,9 +35,46 @@ passport.use(
                 });
               }
             })
-            .catch(err => console.log(err));
+            .catch((err) => console.log(err));
         })
-        .catch(err => done(err));
-    }),
+        .catch((err) => done(err));
+    },
+  ),
+);
+
+passport.use(
+  'user',
+  new LocalStrategy(
+    {
+      usernameField: 'email',
+      passwordField: 'passwd',
+    },
+    (email, password, done) => {
+      AdminModel.findOne({
+        email,
+      })
+        .then((user) => {
+          if (!user) {
+            return done(null, false, {
+              message: 'Incorrect email/password',
+            });
+          }
+          user
+            .comparePassword(password)
+            .then((stat) => {
+              if (stat) {
+                done(null, user, {
+                  message: 'Successful login',
+                });
+              } else {
+                done(null, false, {
+                  message: 'Incorrect email/password',
+                });
+              }
+            })
+            .catch((err) => console.log(err));
+        })
+        .catch((err) => done(err));
+    },
   ),
 );

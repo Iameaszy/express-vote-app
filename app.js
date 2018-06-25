@@ -18,14 +18,19 @@ new Promise((resolve) => {
     require(model);
   });
   resolve();
-}).then(() => {
-  require('./setup');
 })
-  .catch(err => console.log(err));
-
+  .then(() => {
+    require('./setup');
+  })
+  .catch((err) => console.log(err));
 
 const app = express();
-
+app.enable('trust proxy');
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  console.log('ip:', req.ip);
+  next();
+});
 module.exports = require('./config/express')(app, config);
 
 app.listen(config.port, () => {
