@@ -2,9 +2,10 @@
 
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 const { Schema } = mongoose;
-const bcrypt = require('bcrypt');
+const { ObjectId } = Schema.Types;
 
 const UserSchema = new Schema(
   {
@@ -35,7 +36,8 @@ const UserSchema = new Schema(
       type: String,
       required: true,
     },
-    votes_created: Number,
+    pollCount: { type: Number, default: 0 },
+    polls: [ObjectId],
   },
   {
     strictQuery: true,
@@ -98,4 +100,4 @@ UserSchema.pre('save', save);
 UserSchema.methods.comparePassword = comparePassword;
 UserSchema.methods.generateJwt = generateJwt;
 
-mongoose.model('Users', UserSchema);
+module.exports = mongoose.model('Users', UserSchema);

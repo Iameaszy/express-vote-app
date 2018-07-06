@@ -2,51 +2,53 @@
 
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
-
-const {
-  Schema,
-} = mongoose;
 const bcrypt = require('bcrypt');
 
-const AdminSchema = new Schema({
-  name: {
-    first: {
+const { Schema } = mongoose;
+const { ObjectId } = Schema.Types;
+const AdminSchema = new Schema(
+  {
+    name: {
+      first: {
+        type: String,
+        trim: true,
+        required: true,
+      },
+      last: {
+        type: String,
+        trim: true,
+        required: true,
+      },
+      others: {
+        type: String,
+        trim: true,
+      },
+    },
+    age: Number,
+    email: {
       type: String,
-      trim: true,
+      unique: true,
+      lowercase: true,
       required: true,
     },
-    last: {
+    password: {
       type: String,
-      trim: true,
       required: true,
     },
-    others: {
+    polls: { type: [ObjectId], default: [] },
+    security: {
       type: String,
-      trim: true,
+    },
+    isAdmin: {
+      type: Boolean,
+      default: false,
     },
   },
-  age: Number,
-  email: {
-    type: String,
-    unique: true,
-    lowercase: true,
-    required: true,
+  {
+    strictQuery: true,
+    timestamps: true,
   },
-  password: {
-    type: String,
-    required: true,
-  },
-  security: {
-    type: String,
-  },
-  isAdmin: {
-    type: Boolean,
-    default: false,
-  },
-}, {
-  strictQuery: true,
-  timestamps: true,
-});
+);
 
 AdminSchema.set('toObject', {
   virtuals: true,
@@ -60,8 +62,9 @@ function comparePassword(password) {
     bcrypt.compare(password, this.password, (err, stat) => {
       if (err) {
         reject(err);
+      } else {
+        resolve(stat);
       }
-      resolve(stat);
     });
   });
 }
@@ -77,18 +80,20 @@ function save(next) {
   });
 }
 
-
 function generateJwt() {
   const user = this;
 
-  return jwt.sign({
-    email: user.email,
-    name: user.fullname,
-    hash: user.password,
-  }, process.env.secret);
+  return jwt.sign(
+    {
+      email: user.email,
+      name: user.fullname,
+      hash: user.password,
+    },
+    process.env.secret,
+  );
 }
 
-AdminSchema.virtual('fullname').get(function () {
+AdminSchema.virtual('fullname').get(function() {
   return `${this.name.last} ${this.name.first}`;
 });
 
